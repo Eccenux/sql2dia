@@ -1,0 +1,116 @@
+#!/usr/bin/perl
+
+# $Id: pgsql2dia,v 0.1 2007/12/18 23:51:21 nux Exp $
+
+use strict;
+use DBI;
+use Getopt::Mixed "nextOption";
+use GenDia;
+
+my $debug = 0;
+my ($banco,$host,$outfile,$username,$password) = &getParams();
+my $dbh = DBI->connect("dbi:PgPP:dbname=".$banco.";host=".$host, $username, $password) or die "Error with DB connection.";
+
+# Get database data
+my %data;
+my $sql = "SELECT table_name FROM information_schema.tables WHERE table_type = 'BASE TABLE' AND table_schema = 'public'";
+my $tables = &runSql($sql);
+foreach my $table (@{$tables}) {
+	$sql = "SELECT column_name,
+		CASE WHEN character_maximum_length > 0 THEN data_type || '(' || CAST(character_maximum_length AS varchar) || ')'
+			ELSE data_type
+		END
+	FROM information_schema.columns WHERE table_name = '".$table->[0]."';";
+	my $fields = &runSql($sql);
+	foreach my $field (@{$fields}) {
+		$data{$table->[0]}{FIELDS}{$field->[0]} = $field->[1];
+	}
+}
+
+# Generate file
+my $generator = new GenDia(debug=>$debug);
+$generator->setOutfile($outfile);
+$generator->setData(\%data);
+$generator->store();
+
+#############################################################
+sub runSql {
+	my $sql = shift;
+	my $rows = undef;
+	my $sth = $dbh->prepare($sql);
+	if ( !defined $sth )
+	{
+		die "Cannot prepare statement: $DBI::errstr\n";
+	}
+#print $tables->[0]->[0];
+
+	$sth->execute();
+#print $sth;
+#	if ($sth->rows) {
+		$rows = $sth->fetchall_arrayref;
+#	}
+	$sth->finish();
+	return $rows;
+	
+	### Fetch all the data into a Perl data structure
+#	my $array_ref = $sth->fetchall_arrayref(  );
+#	my $rows = $array_ref;
+	
+	### Traverse the data structure and dump each piece of data out
+	###
+	### For each row in the returned array reference ...
+#	foreach my $row (@$array_ref) {
+		### Split the row up and print each field ...
+#		my ( $name ) = @$row;
+#		print "$name\n";
+#	}
+
+#	return $rows;
+}
+
+sub usage {
+	print qq|Usage:
+$0 -d database [-h host] [-o outputfile] [-D] [-u user] [-p password]
+	-d	database is mandatory.
+	-h	host default is "localhost".
+	-o	outputfile default is "[database].dia".
+	-D	activate debug mode.
+	-u	database user name.
+	-p	database password.
+
+|;
+}
+
+sub getParams {
+	my ($db,$host,$file,$username,$password) = ("","localhost","","root","");
+	Getopt::Mixed::init("d=s h=s o=s D u=s p=s");
+	while (my ($option, $value) = nextOption()) {
+		if($option eq "d") {
+			$db = $value;
+		} elsif ($option eq "h") {
+			$host = $value;
+		} elsif ($option eq "o") {
+			$file = $value;
+		} elsif ($option eq "D") {
+			print "Debug mode activated.\n";
+			$debug++;
+		} elsif ($option eq "u") {
+			$username = $value
+		} elsif ($option eq "p") {
+			$password = $value
+		}
+	}
+	Getopt::Mixed::cleanup();
+	if(!$db) {
+		&usage();
+		exit(1);
+	} else {
+		if(!$file) {
+			$file = $db.'.dia';
+		}
+	}
+	return ($db,$host,$file,$username,$password);
+}
+
+1;
+
