@@ -66,7 +66,7 @@ sub genXml {
 	foreach my $table (@tables) {
 		# Criar classe
 		$self->{XML} .= $self->getObjHeader($table);
-		my @fields = keys %{$self->{data}{$table}{FIELDS}};
+		my @fields = sort { $a cmp $b } keys %{$self->{data}{$table}{FIELDS}};
 		# Para cada campo
 		foreach my $field (@fields) {
 			# Criar atributo
