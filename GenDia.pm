@@ -60,9 +60,9 @@ sub store {
 sub genXml {
 	my $self = shift;
 	$self->{XML} = $self->getHeader();
-	# Listar tabelas
-	my @tables = keys %{$self->{data}};
-	# Para cada tabela
+	# List table names ordered by name
+	my @tables = sort { $a cmp $b } keys %{$self->{data}};
+	# Loop over table data
 	foreach my $table (@tables) {
 		# Criar classe
 		$self->{XML} .= $self->getObjHeader($table);
