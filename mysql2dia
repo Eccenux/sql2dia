@@ -5,6 +5,7 @@
 use strict;
 use DBI;
 use Getopt::Mixed "nextOption";
+BEGIN {push @INC, '.'}
 use GenDia;
 
 my $debug = 0;
@@ -46,8 +47,8 @@ sub usage {
 	print qq|Usage:
 $0 -d database [-h host] [-o outputfile] [-D] [-u user] [-p password]
 	-d	database is mandatory.
-	-h	host default is "localhost".
-	-o	outputfile default is "[database].dia".
+	-h	host (default is "localhost").
+	-o	outputfile (default is "[database].dia").
 	-D	activate debug mode.
 	-u	database user name.
 	-p	database password.
