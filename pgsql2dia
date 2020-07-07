@@ -5,6 +5,7 @@
 use strict;
 use DBI;
 use Getopt::Mixed "nextOption";
+BEGIN {push @INC, '.'}
 use GenDia;
 
 my $debug = 0;
