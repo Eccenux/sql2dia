@@ -9,8 +9,8 @@ BEGIN {push @INC, '.'}
 use GenDia;
 
 my $debug = 0;
-my ($banco,$host,$outfile,$username,$password) = &getParams();
-my $dbh = DBI->connect("dbi:PgPP:dbname=".$banco.";host=".$host, $username, $password) or die "Error with DB connection.";
+my ($banco,$host,$outfile,$username,$password,$port) = &getParams();
+my $dbh = DBI->connect("dbi:PgPP:dbname=".$banco.";host=".$host.";port=".$port, $username, $password) or die "Error with DB connection.";
 
 # Get database data
 my %data;
@@ -71,20 +71,20 @@ sub runSql {
 
 sub usage {
 	print qq|Usage:
-$0 -d database [-h host] [-o outputfile] [-D] [-u user] [-p password]
+$0 -d database [-h host] [-o outputfile] [-D] [-u user] [-p password] [--port 1234]
 	-d	database is mandatory.
-	-h	host default is "localhost".
-	-o	outputfile default is "[database].dia".
+	-h	host (default is "localhost").
+	-o	outputfile (default is "[database].dia").
 	-D	activate debug mode.
 	-u	database user name.
 	-p	database password.
-
+	--port	database port (defaults is 5432).
 |;
 }
 
 sub getParams {
-	my ($db,$host,$file,$username,$password) = ("","localhost","","root","");
-	Getopt::Mixed::init("d=s h=s o=s D u=s p=s");
+	my ($db,$host,$file,$username,$password,$port) = ("","localhost","","root","",5432);
+	Getopt::Mixed::init("d=s h=s o=s D u=s p=s port=s");
 	while (my ($option, $value) = nextOption()) {
 		if($option eq "d") {
 			$db = $value;
@@ -99,6 +99,8 @@ sub getParams {
 			$username = $value
 		} elsif ($option eq "p") {
 			$password = $value
+		} elsif ($option eq "port") {
+			$port = $value
 		}
 	}
 	Getopt::Mixed::cleanup();
@@ -110,7 +112,7 @@ sub getParams {
 			$file = $db.'.dia';
 		}
 	}
-	return ($db,$host,$file,$username,$password);
+	return ($db,$host,$file,$username,$password,$port);
 }
 
 1;
