@@ -1,0 +1,27 @@
+cvs2dia
+http://sql2dia.sf.net
+
+This software is in early stages, many things needs to be made.
+For now it only generates a "class" diagram with one class for each
+table in the database, and all columns as "class attributes".
+
+Next steps are:
+- Create relation lines between tables
+- Reorder tables based on relations
+- Use a better way to generate the XML (maybe the Dia libs, needs study)
+- Support for PostgreSQL
+
+For more information about the GPL, see the COPYING file.
+
+Itamar Almeida de Carvalho <itamar at users.sourceforge.net>
+
+THANKS TO:
+Ken Gilmer - for his patch to support database authentication.
+
+NOTE:
+I have no direct connection with the Dia developers.
+I'm only a fan of their work.
+
+The Dia homepage can be found at:
+http://www.lysator.liu.se/~alla/dia/
+
