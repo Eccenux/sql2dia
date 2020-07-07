@@ -9,12 +9,14 @@ BEGIN {push @INC, '.'}
 use GenDia;
 
 my $debug = 0;
-my ($banco,$host,$outfile,$username,$password,$port) = &getParams();
+my ($banco,$host,$outfile,$username,$password,$port,$schema) = &getParams();
 my $dbh = DBI->connect("dbi:PgPP:dbname=".$banco.";host=".$host.";port=".$port, $username, $password) or die "Error with DB connection.";
 
 # Get database data
 my %data;
-my $sql = "SELECT table_name FROM information_schema.tables WHERE table_type = 'BASE TABLE' AND table_schema = 'public'";
+my $sql = "SELECT table_name FROM information_schema.tables 
+	WHERE table_type = 'BASE TABLE' AND table_schema = '".$schema."'
+";
 my $tables = &runSql($sql);
 foreach my $table (@{$tables}) {
 	$sql = "SELECT column_name,
@@ -71,21 +73,28 @@ sub runSql {
 
 sub usage {
 	print qq|Usage:
-$0 -d database [-h host] [-o outputfile] [-D] [-u user] [-p password] [--port 1234]
-	-d	database is mandatory.
-	-h	host (default is "localhost").
-	-o	outputfile (default is "[database].dia").
-	-D	activate debug mode.
-	-u	database user name.
-	-p	database password.
-	--port	database port (defaults is 5432).
+$0 -d database [-h host] [-o outputfile] [-D] [-u user] [-p password] [--port 1234] [-s schema]
+	-d           database is mandatory.
+	-h           host (default is "localhost").
+	-o           outputfile (default is "[database].dia").
+	-D           activate debug mode.
+	-u           database user name.
+	-p           database password.
+	--port       database port (defaults is 5432).
+	-s --schema  database schema (defaults is "public").
 |;
 }
 
 sub getParams {
-	my ($db,$host,$file,$username,$password,$port) = ("","localhost","","root","",5432);
-	Getopt::Mixed::init("d=s h=s o=s D u=s p=s port=s");
+	# defaults
+	my ($db,$host,$file,$username,$password,$port,$schema) = ("","localhost","","root","",5432,"public");
+	# option mapping (note long options are `--long`; short are `-s`)
+	Getopt::Mixed::init("d=s h=s o=s D u=s p=s port=s s=s schema>s");
 	while (my ($option, $value) = nextOption()) {
+		# test options
+		#print "option: $option, value: $value\n";
+
+		# map options
 		if($option eq "d") {
 			$db = $value;
 		} elsif ($option eq "h") {
@@ -101,6 +110,8 @@ sub getParams {
 			$password = $value
 		} elsif ($option eq "port") {
 			$port = $value
+		} elsif ($option eq "s") {
+			$schema = $value
 		}
 	}
 	Getopt::Mixed::cleanup();
@@ -112,7 +123,7 @@ sub getParams {
 			$file = $db.'.dia';
 		}
 	}
-	return ($db,$host,$file,$username,$password,$port);
+	return ($db,$host,$file,$username,$password,$port,$schema);
 }
 
 1;
