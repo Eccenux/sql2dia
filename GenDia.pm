@@ -49,6 +49,12 @@ sub setData {
 	$self->{data} = $data;
 }
 
+sub setFk {
+	my $self = shift;
+	my $fk = shift;
+	$self->{fk} = $fk;
+}
+
 sub store {
 	my $self = shift;
 	$self->genXml();
@@ -74,6 +80,17 @@ sub genXml {
 		}
 		$self->{XML} .= $self->getObjFooter();
 	}
+
+	# Loop over FK data
+	use Data::Dump qw(dump);
+	#dump($self->{fk});
+	#die('-');
+	foreach my $row (@{$self->{fk}}) {
+		#dump($row);
+		$self->{XML} .= $self->getAssocObject($row->[0], $row->[1], $row->[2], $row->[3], $row->[4]);
+	}
+	
+	# over-all footer
 	$self->{XML} .= $self->getFooter();
 }
 
@@ -170,12 +187,16 @@ sub calcPosition {
 	}
 }
 
+##
+# Dia object for a class
+##
 sub getObjHeader {
 	my $self = shift;
 	my $nome = shift;
 	print "Creating object $nome...\n" if $debug;
 	my $header = <<END;
-    <dia:object type="UML - Class" version="0" id="O0">
+	
+    <dia:object type="UML - Class" version="0" id="tbl_$nome">
       <dia:attribute name="obj_pos">
         <dia:point val="$x1,$y1"/>
       </dia:attribute>
@@ -288,6 +309,80 @@ sub getAttrib {
         </dia:composite>
 END
 	return $attr;
+}
+
+##
+# Dia object for an association (connection)
+#
+#	* constraint_name -- could be used as an assoc. name.
+#	* table_name -- use to identify side A object. Would be easier if object ids would be equal to table names...
+#	* foreign_table_name -- use to identify side B object.
+#	* column_name -- use as a role A.
+#	* foreign_column_name -- use as a role B.
+##
+sub getAssocObject {
+	my $self = shift;
+
+	my $constraint_name = shift;
+
+	my $table_name = shift;
+	my $column_name = shift;
+
+	my $foreign_table_name = shift;
+	my $foreign_column_name = shift;
+
+	print "Creating association $constraint_name for $table_name...\n" if $debug;
+
+	my $xmlText = <<END;
+
+    <dia:object type="UML - Association" version="2" id="assoc_$constraint_name">
+      <dia:attribute name="name">
+        <dia:string>#$constraint_name#</dia:string>
+      </dia:attribute>
+      <dia:attribute name="show_direction">
+        <dia:boolean val="false"/>
+      </dia:attribute>
+      <dia:attribute name="assoc_type">
+        <dia:enum val="0"/>
+      </dia:attribute>
+	  
+      <dia:attribute name="role_a">
+        <dia:string>#$column_name#</dia:string>
+      </dia:attribute>
+      <dia:attribute name="multipicity_a">
+        <dia:string>#0..*?#</dia:string>
+      </dia:attribute>
+      <dia:attribute name="visibility_a">
+        <dia:enum val="0"/>
+      </dia:attribute>
+      <dia:attribute name="show_arrow_a">
+        <dia:boolean val="false"/>
+      </dia:attribute>
+	  
+      <dia:attribute name="role_b">
+        <dia:string>#$foreign_column_name#</dia:string>
+      </dia:attribute>
+      <dia:attribute name="multipicity_b">
+        <dia:string>#1?#</dia:string>
+      </dia:attribute>
+      <dia:attribute name="visibility_b">
+        <dia:enum val="0"/>
+      </dia:attribute>
+      <dia:attribute name="show_arrow_b">
+        <dia:boolean val="true"/>
+      </dia:attribute>
+	  
+      <dia:attribute name="orth_autoroute">
+        <dia:boolean val="true"/>
+      </dia:attribute>
+	  
+      <dia:connections>
+        <dia:connection handle="0" to="tbl_$table_name" connection="3" />
+        <dia:connection handle="1" to="tbl_$foreign_table_name" connection="4" />
+      </dia:connections>
+    </dia:object>
+END
+	return $xmlText;
 }
 
 1;
