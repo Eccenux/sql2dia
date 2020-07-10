@@ -55,6 +55,18 @@ sub setFk {
 	$self->{fk} = $fk;
 }
 
+##
+# Null-ability data.
+#
+# key: `table.column` (only for columns that are null-able)
+# value: 1
+##
+sub setNullableData {
+	my $self = shift;
+	my $data = shift;
+	$self->{nullableData} = $data;
+}
+
 sub store {
 	my $self = shift;
 	$self->genXml();
@@ -317,6 +329,18 @@ END
 	return $attr;
 }
 
+sub isNullable {
+	my $self = shift;
+	my $table = shift;
+	my $column = shift;
+
+	my $testCol = "$table.$column";
+	if (%{$self->{nullableData}}{$testCol}) {
+		return 1;
+	}
+	return 0;
+}
+
 ##
 # Dia object for an association (connection)
 #
@@ -351,6 +375,15 @@ sub getAssocObject {
 	my $sideAConnection = 8 + 2 * ($sideACount);
 	my $sideBConnection = 8 + 2 * ($sideBCount);
 
+	# "PK" side multiplicity
+	# * if FK is null-able: 0..1
+	# * else: 1
+	my $multipicityB = '1?';
+	if ($self->isNullable($table_name, $column_name)) {
+		# print "\n>>$column_name is null-able";
+		$multipicityB = '0..1';
+	}
+
 	my $xmlText = <<END;
 
     <dia:object type="UML - Association" version="2" id="assoc_$constraint_name">
@@ -381,7 +414,7 @@ sub getAssocObject {
         <dia:string>#$foreign_column_name#</dia:string>
       </dia:attribute>
       <dia:attribute name="multipicity_b">
-        <dia:string>#1?#</dia:string>
+        <dia:string>#$multipicityB#</dia:string>
       </dia:attribute>
       <dia:attribute name="visibility_b">
         <dia:enum val="0"/>

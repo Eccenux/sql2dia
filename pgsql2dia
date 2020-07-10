@@ -30,7 +30,11 @@ foreach my $table (@{$tables}) {
 	}
 }
 
+# debug helper
+use Data::Dump qw(dump);
+
 # Foregin keys data
+# Note! Order of columns is important for Perl.
 $sql = "
 	SELECT
 		tc.constraint_name,
@@ -48,23 +52,44 @@ $sql = "
 		JOIN information_schema.constraint_column_usage AS ccu
 		ON ccu.constraint_name = tc.constraint_name
 		AND ccu.table_schema = tc.table_schema
-	WHERE tc.constraint_type = 'FOREIGN KEY' AND tc.table_schema = 'tenants'
+	WHERE tc.constraint_type = 'FOREIGN KEY' AND tc.table_schema = '$schema'
 	AND tc.constraint_name NOT like 'qrtz_%'
 ";
 my $fk = &runSql($sql);
-#use Data::Dump qw(dump);
 #dump($fk);
 #die('-');
 
-#use Data::Dump qw(dump);
 #dump(\%data);
 #die('-');
 
+# Null-ability data
+$sql = "
+	SELECT table_name, column_name
+	FROM information_schema.columns
+	WHERE IS_NULLABLE = 'YES' and table_schema = '$schema'
+";
+my $nullableRows = &runSql($sql);
+# convert to hash map array
+my %nullableData;
+foreach my $row (@{$nullableRows}) {
+	my $key = $row->[0].".".$row->[1];
+	$nullableData{$key} = 1;
+}
+#if (%nullableData{$testCol}) {
+#	print "\n$testCol is null-able";
+#}
+#dump(\%nullableData);
+#die('\n-');
+
+
+##
 # Generate file
+##
 my $generator = new GenDia(debug=>$debug);
 $generator->setOutfile($outfile);
 $generator->setData(\%data);
 $generator->setFk($fk);
+$generator->setNullableData(\%nullableData);
 $generator->store();
 
 #############################################################
