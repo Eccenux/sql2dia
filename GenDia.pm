@@ -66,6 +66,10 @@ sub store {
 sub genXml {
 	my $self = shift;
 	$self->{XML} = $self->getHeader();
+
+	# Columns/attr info for FK
+	my %attrCounts;
+
 	# List table names ordered by name
 	my @tables = sort { $a cmp $b } keys %{$self->{data}};
 	# Loop over table data
@@ -73,6 +77,7 @@ sub genXml {
 		# Criar classe
 		$self->{XML} .= $self->getObjHeader($table);
 		my @fields = sort { $a cmp $b } keys %{$self->{data}{$table}{FIELDS}};
+		$attrCounts{$table} = scalar @fields;
 		# Para cada campo
 		foreach my $field (@fields) {
 			# Criar atributo
@@ -83,11 +88,12 @@ sub genXml {
 
 	# Loop over FK data
 	use Data::Dump qw(dump);
+	#dump(%attrCounts);
 	#dump($self->{fk});
 	#die('-');
 	foreach my $row (@{$self->{fk}}) {
 		#dump($row);
-		$self->{XML} .= $self->getAssocObject($row->[0], $row->[1], $row->[2], $row->[3], $row->[4]);
+		$self->{XML} .= $self->getAssocObject(\%attrCounts, $row->[0], $row->[1], $row->[2], $row->[3], $row->[4]);
 	}
 	
 	# over-all footer
@@ -323,6 +329,8 @@ END
 sub getAssocObject {
 	my $self = shift;
 
+	my $attrCounts = shift;
+
 	my $constraint_name = shift;
 
 	my $table_name = shift;
@@ -332,6 +340,16 @@ sub getAssocObject {
 	my $foreign_column_name = shift;
 
 	print "Creating association $constraint_name for $table_name...\n" if $debug;
+	use Data::Dump qw(dump);
+	#dump($attrCounts);
+	#dump($attrCounts->{$table_name});
+
+	# connection points
+	my $sideACount = $attrCounts->{$table_name};
+	my $sideBCount = $attrCounts->{$foreign_table_name};
+	# Mid-point: 8 + 2 * (atr_count)
+	my $sideAConnection = 8 + 2 * ($sideACount);
+	my $sideBConnection = 8 + 2 * ($sideBCount);
 
 	my $xmlText = <<END;
 
@@ -377,8 +395,8 @@ sub getAssocObject {
       </dia:attribute>
 	  
       <dia:connections>
-        <dia:connection handle="0" to="tbl_$table_name" connection="3" />
-        <dia:connection handle="1" to="tbl_$foreign_table_name" connection="4" />
+        <dia:connection handle="0" to="tbl_$table_name" connection="$sideAConnection" />
+        <dia:connection handle="1" to="tbl_$foreign_table_name" connection="$sideBConnection" />
       </dia:connections>
     </dia:object>
 END
