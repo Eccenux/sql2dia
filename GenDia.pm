@@ -103,7 +103,20 @@ sub genXml {
 	#dump(%attrCounts);
 	#dump($self->{fk});
 	#die('-');
-	foreach my $row (@{$self->{fk}}) {
+	# order by columns first (to avoid re-order when FK name changes)
+	# table_name
+	# column_name
+	# foreign_table_name
+	# foreign_column_name
+	# constraint_name
+	my @fk = sort {
+		$a->[1] cmp $b->[1] ||
+		$a->[2] cmp $b->[2] ||
+		$a->[3] cmp $b->[3] ||
+		$a->[4] cmp $b->[4] ||
+		$a->[0] cmp $b->[0]
+	} @{$self->{fk}};
+	foreach my $row (@fk) {
 		#dump($row);
 		$self->{XML} .= $self->getAssocObject(\%attrCounts, $row->[0], $row->[1], $row->[2], $row->[3], $row->[4]);
 	}
