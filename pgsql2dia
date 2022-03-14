@@ -17,6 +17,15 @@ my %data;
 my $sql = "SELECT table_name FROM information_schema.tables 
 	WHERE table_type = 'BASE TABLE' AND table_schema = '".$schema."'
 ";
+# 	AND
+#	(
+#		table_name IN ('library','reader','holding')
+#		OR
+#		table_name LIKE 'dim%'
+#		OR
+#		table_name LIKE 'fact%'
+#	)	
+
 my $tables = &runSql($sql);
 foreach my $table (@{$tables}) {
 	$sql = "SELECT column_name,
