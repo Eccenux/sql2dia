@@ -14,9 +14,25 @@ my $dbh = DBI->connect("dbi:PgPP:dbname=".$banco.";host=".$host.";port=".$port, 
 
 # Get database data
 my %data;
+
+# $sql unfiltered
 my $sql = "SELECT table_name FROM information_schema.tables 
 	WHERE table_type = 'BASE TABLE' AND table_schema = '".$schema."'
 ";
+# $sql ML NET loans
+my $sql = "SELECT table_name FROM information_schema.tables 
+	WHERE table_type = 'BASE TABLE' AND table_schema = '".$schema."'
+ 	AND
+	(
+		table_name IN ('library','reader','holding')
+		OR table_name IN ('dimreader', 'document', 'inventorybook')
+		OR table_name ~ 'loan'
+		OR table_name ~ 'reservation'
+		OR table_name ~ 'renewal'
+	)	
+";
+
+# $sql ML NET DWH
 # 	AND
 #	(
 #		table_name IN ('library','reader','holding')
@@ -32,11 +48,20 @@ foreach my $table (@{$tables}) {
 		CASE WHEN character_maximum_length > 0 THEN data_type || '(' || CAST(character_maximum_length AS varchar) || ')'
 			ELSE data_type
 		END
-	FROM information_schema.columns WHERE table_name = '".$table->[0]."';";
+	FROM information_schema.columns WHERE table_name = '".$table->[0]."' and table_schema = '".$schema."';";
 	my $fields = &runSql($sql);
 	foreach my $field (@{$fields}) {
 		$data{$table->[0]}{FIELDS}{$field->[0]} = $field->[1];
 	}
+}
+
+# Print the count of tables
+my $table_count = scalar(@$tables);
+print "[INFO] Number of Tables: $table_count\n";
+
+# Print the SQL query if the count is zero
+if ($table_count == 0) {
+    print "[WARNING] No tables for query:\n$sql\n";
 }
 
 # debug helper
