@@ -9,38 +9,71 @@ BEGIN {push @INC, '.'}
 use GenDia;
 
 my $debug = 0;
-my ($banco,$host,$outfile,$username,$password,$port,$schema) = &getParams();
+# Command line arguments
+my ($banco,$host,$outfile,$username,$password,$port,$schema,$tableSet) = &getParams();
+
+# Connect
 my $dbh = DBI->connect("dbi:PgPP:dbname=".$banco.";host=".$host.";port=".$port, $username, $password) or die "Error with DB connection.";
 
 # Get database data
 my %data;
 
-# $sql unfiltered
-my $sql = "SELECT table_name FROM information_schema.tables 
-	WHERE table_type = 'BASE TABLE' AND table_schema = '".$schema."'
-";
-# $sql ML NET loans
-my $sql = "SELECT table_name FROM information_schema.tables 
-	WHERE table_type = 'BASE TABLE' AND table_schema = '".$schema."'
- 	AND
-	(
-		table_name IN ('library','reader','holding')
-		OR table_name IN ('dimreader', 'document', 'inventorybook')
-		OR table_name ~ 'loan'
-		OR table_name ~ 'reservation'
-		OR table_name ~ 'renewal'
-	)	
-";
+# Switch on $tableSet (set of tables name)
+my $sql;
+if ($tableSet eq 'ML NET loans') {
+	# $sql ML NET loans
+	$sql = "SELECT table_name FROM information_schema.tables 
+		WHERE table_type = 'BASE TABLE' AND table_schema = '".$schema."'
+		AND
+		(
+			table_name IN ('library','reader','holding')
+			OR table_name IN ('dimreader', 'document', 'inventorybook')
+			OR table_name ~ 'loan'
+			OR table_name ~ 'reservation'
+			OR table_name ~ 'renewal'
+		)	
+	";
+}
+elsif ($tableSet eq 'ML NET DWH') {
+	# $sql ML NET DWH
+	$sql = "SELECT table_name FROM information_schema.tables 
+		WHERE table_type = 'BASE TABLE' AND table_schema = '".$schema."'
+		AND
+		(
+			table_name IN ('library','reader','holding')
+			OR
+			table_name LIKE 'dim%'
+			OR
+			table_name LIKE 'fact%'
+		)
+	";
+}
+elsif ($tableSet eq 'ML NET documents') {
+	# $sql ML NET documents
+	$sql = "SELECT table_name FROM information_schema.tables 
+		WHERE table_type = 'BASE TABLE' AND table_schema = '".$schema."'
+		AND
+		(
+			table_name IN ('holding', 'bibliographicdatabase')
+			OR table_name ~ 'document'
+			OR table_name ~ 'collection'
+			OR table_name ~ 'copub'
+			OR table_name ~ 'entry'
+			OR table_name ~ 'title'
+			OR table_name ~ 'series'
+		)	
+	";
+}
+else {
+	$tableSet = "unfiltered (default)";
+	# $sql unfiltered (default)
+	$sql = "SELECT table_name FROM information_schema.tables 
+		WHERE table_type = 'BASE TABLE' AND table_schema = '".$schema."'
+	";
+}
 
-# $sql ML NET DWH
-# 	AND
-#	(
-#		table_name IN ('library','reader','holding')
-#		OR
-#		table_name LIKE 'dim%'
-#		OR
-#		table_name LIKE 'fact%'
-#	)	
+# Print chosen set info
+print "Chosen set: $tableSet\n";
 
 my $tables = &runSql($sql);
 foreach my $table (@{$tables}) {
@@ -177,9 +210,9 @@ $0 -d database [-h host] [-o outputfile] [-D] [-u user] [-p password] [--port 12
 
 sub getParams {
 	# defaults
-	my ($db,$host,$file,$username,$password,$port,$schema) = ("","localhost","","root","",5432,"public");
+	my ($db,$host,$file,$username,$password,$port,$schema,$tableSet) = ("","localhost","","root","",5432,"public","");
 	# option mapping (note long options are `--long`; short are `-s`)
-	Getopt::Mixed::init("d=s h=s o=s D u=s p=s port=s s=s schema>s");
+	Getopt::Mixed::init("d=s h=s o=s D u=s p=s port=s s=s tableSet=s schema>s");
 	while (my ($option, $value) = nextOption()) {
 		# test options
 		#print "option: $option, value: $value\n";
@@ -198,6 +231,8 @@ sub getParams {
 			$username = $value
 		} elsif ($option eq "p") {
 			$password = $value
+		} elsif ($option eq "tableSet") {
+			$tableSet = $value
 		} elsif ($option eq "port") {
 			$port = $value
 		} elsif ($option eq "s") {
@@ -213,7 +248,7 @@ sub getParams {
 			$file = $db.'.dia';
 		}
 	}
-	return ($db,$host,$file,$username,$password,$port,$schema);
+	return ($db,$host,$file,$username,$password,$port,$schema,$tableSet);
 }
 
 1;
