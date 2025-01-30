@@ -14,9 +14,10 @@ You should be able to use any Perl 5 that works for you. The app was last tested
 
 Steps:
 1. Install Perl (again Strawberry should work fine).
-2. Open "CPAN client".
-3. `install DBD::PgPP`.
-4. `install Getopt::Mixed`.
+2. `cpanm DBD::Pg`(*). (or if tests fail run: `cpanm --force DBD::Pg`)
+3. `cpanm Getopt::Mixed`.
+
+(*) Until PG10 this script used `DBD::PgPP`. It doesn't seem to be developed anymore and `DBD::Pg` seems like a good replacement.
 
 Note if your are using `ppm` for installing modules then the module names are slightly different. For example for PgPP this worked for me in old Perl installation (perl-camelpack-5.8.7):
 ```

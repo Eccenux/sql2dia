@@ -13,7 +13,11 @@ my $debug = 0;
 my ($banco,$host,$outfile,$username,$password,$port,$schema,$tableSet) = &getParams();
 
 # Connect
-my $dbh = DBI->connect("dbi:PgPP:dbname=".$banco.";host=".$host.";port=".$port, $username, $password) or die "Error with DB connection.";
+# old PostgreSQL (probably PG10 and below)
+# my $dbh = DBI->connect("dbi:PgPP:dbname=".$banco.";host=".$host.";port=".$port, $username, $password) or die "Error with DB connection.";
+my $dbh = DBI->connect("dbi:Pg:dbname=".$banco.";host=".$host.";port=".$port, $username, $password, 
+    { RaiseError => 1, PrintError => 0, AutoCommit => 1 })
+    or die "Error with DB connection: $DBI::errstr";
 
 # Get database data
 my %data;
@@ -61,6 +65,16 @@ elsif ($tableSet eq 'ML NET documents') {
 			OR table_name ~ 'entry'
 			OR table_name ~ 'title'
 			OR table_name ~ 'series'
+		)	
+	";
+}
+elsif ($tableSet eq 'ML NET fact-holdings') {
+	# $sql ML NET documents
+	$sql = "SELECT table_name FROM information_schema.tables 
+		WHERE table_type = 'BASE TABLE' AND table_schema = '".$schema."'
+		AND
+		(
+			table_name IN ('library', 'factloan', 'dimlibrary', 'holding', 'inventorybook', 'diminventorybook')
 		)	
 	";
 }
